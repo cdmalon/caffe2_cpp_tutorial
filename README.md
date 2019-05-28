@@ -1,3 +1,36 @@
+# Revised for PyTorch Caffe2: Caffe2 C++ Tutorials and Examples
+
+Caffe2 has changed a lot since these Caffe2 C++ Tutorials and Examples
+from [leonardvandriel/caffe2_cpp_tutorial](leonardvandriel/caffe2_cpp_tutorial)
+were written and PyTorch has taken over the Caffe2 API.
+There are a number of breaking API changes that either prevent old code
+from compiling or cause segfaults if not known about.
+
+We haven't updated the entire project, but we have revised
+the model helper utilities in the [utils](src/caffe2/utils) directory
+and the intro and mnist examples in the [binaries](src/caffe2/binaries)
+directory so that they run properly with the new API.
+
+So that you can compile only the parts we have revised,
+we put individual Makefiles for x86 and Aurora (the NEC Vector Engine
+Tsubasa architecture) in the utils and binaries directory.
+You can build the intro example without building utils, by
+running
+
+    make -f Makefile.x86 intro
+
+in the binaries directory.  To build the mnist example, which
+uses the model helper utilities, you must first build utillibs.so
+in the utils directory, with
+
+    make -f Makefile.x86
+
+Then you can execute the same in the binaries directory.
+
+-- cdmalon
+
+# Original README
+
 <img src="icon.jpg" alt="Caffe2 C++ Tutorials Icon" width="72"/>
 
 # Caffe2 C++ Tutorials and Examples
