@@ -44,7 +44,7 @@ Argument* net_add_arg(OperatorDef& op, const std::string& name,
 }
 
 Argument* net_add_arg(OperatorDef& op, const std::string& name,
-                      std::vector<TIndex> values) {
+                      const at::IntList& values) {
   auto arg = net_add_arg(op, name);
   for (auto value : values) {
     arg->add_ints(value);
@@ -252,7 +252,7 @@ OperatorDef* NetUtil::AddVectorFillOp(const std::vector<int>& values,
 OperatorDef* NetUtil::AddGivenTensorFillOp(const TensorCPU& tensor,
                                            const std::string& name) {
   auto op = AddOp("GivenTensorFill", {}, {name});
-  net_add_arg(*op, "shape", tensor.dims());
+  net_add_arg(*op, "shape", tensor.sizes());
   auto arg = net_add_arg(*op, "values");
   const auto& data = tensor.data<float>();
   for (auto i = 0; i < tensor.size(); ++i) {

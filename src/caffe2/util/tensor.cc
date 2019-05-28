@@ -1,13 +1,17 @@
 #include "caffe2/util/tensor.h"
 
+/*
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 
 #include "cvplot/cvplot.h"
 
+*/
+
 namespace caffe2 {
 
+/*
 const auto screen_width = 1600;
 const auto window_padding = 4;
 
@@ -222,11 +226,13 @@ void TensorUtil::ReadImage(const std::string &filename, int width, int height) {
   ReadImages({filename}, width, height, indices);
 }
 
-template <typename T, typename C>
-void tensor_print_type(const Tensor<C> &tensor, const std::string &name,
+*/
+
+template <typename T>
+void tensor_print_type(const Tensor &tensor, const std::string &name,
                        int max) {
   const auto &data = tensor.template data<T>();
-  if (name.length() > 0) std::cout << name << "(" << tensor.dims() << "): ";
+  if (name.length() > 0) std::cout << name << "(" << tensor.sizes() << "): ";
   for (auto i = 0; i < (tensor.size() > max ? max : tensor.size()); ++i) {
     std::cout << (float)data[i] << ' ';
   }

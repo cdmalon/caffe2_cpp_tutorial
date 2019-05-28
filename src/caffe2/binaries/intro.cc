@@ -5,9 +5,14 @@
 namespace caffe2 {
 
 void print(const Blob* blob, const std::string& name) {
-  auto tensor = blob->Get<TensorCPU>();
+  // auto tensor = blob->Get<TensorCPU>();
+  // TensorCPU tensor = *static_cast<const TensorCPU*>(blob->GetRaw());
+  auto tensor = blob->Get<TensorCPU>().Clone();
   const auto& data = tensor.data<float>();
-  std::cout << name << "(" << tensor.dims()
+  // std::cout << name << "(" << tensor.dims()
+  //           << "): " << std::vector<float>(data, data + tensor.size())
+  //           << std::endl;
+  std::cout << name << "(" << tensor.sizes()
             << "): " << std::vector<float>(data, data + tensor.size())
             << std::endl;
 }
@@ -33,8 +38,11 @@ void run() {
 
   // >>> workspace.FeedBlob("my_x", x)
   {
-    auto tensor = workspace.CreateBlob("my_x")->GetMutable<TensorCPU>();
-    auto value = TensorCPU({4, 3, 2}, x, NULL);
+    // auto tensor = workspace.CreateBlob("my_x")->GetMutable<TensorCPU>();
+    auto blob = workspace.CreateBlob("my_x");
+    auto tensor = caffe2::BlobGetMutableTensor(blob, caffe2::DeviceType::CPU);
+    // auto value = TensorCPU({4, 3, 2}, x, NULL);
+    auto value = TensorCPUFromValues<float>({4, 3, 2}, x);
     tensor->ResizeLike(value);
     tensor->ShareData(value);
   }
@@ -60,16 +68,22 @@ void run() {
 
   // >>> workspace.FeedBlob("data", data)
   {
-    auto tensor = workspace.CreateBlob("data")->GetMutable<TensorCPU>();
-    auto value = TensorCPU({16, 100}, data, NULL);
+    // auto tensor = workspace.CreateBlob("data")->GetMutable<TensorCPU>();
+    auto blob = workspace.CreateBlob("data");
+    auto tensor = caffe2::BlobGetMutableTensor(blob, caffe2::DeviceType::CPU);
+    // auto value = TensorCPU({16, 100}, data, NULL);
+    auto value = TensorCPUFromValues<float>({16, 100}, data);
     tensor->ResizeLike(value);
     tensor->ShareData(value);
   }
 
   // >>> workspace.FeedBlob("label", label)
   {
-    auto tensor = workspace.CreateBlob("label")->GetMutable<TensorCPU>();
-    auto value = TensorCPU({16}, label, NULL);
+    // auto tensor = workspace.CreateBlob("label")->GetMutable<TensorCPU>();
+    auto blob = workspace.CreateBlob("label");
+    auto tensor = caffe2::BlobGetMutableTensor(blob, caffe2::DeviceType::CPU);
+    // auto value = TensorCPU({16}, label, NULL);
+    auto value = TensorCPUFromValues<int>({16}, label);
     tensor->ResizeLike(value);
     tensor->ShareData(value);
   }
@@ -188,15 +202,21 @@ void run() {
 
     // >>> workspace.FeedBlob("data", data)
     {
-      auto tensor = workspace.GetBlob("data")->GetMutable<TensorCPU>();
-      auto value = TensorCPU({16, 100}, data, NULL);
+      // auto tensor = workspace.GetBlob("data")->GetMutable<TensorCPU>();
+      auto blob = workspace.GetBlob("data");
+      auto tensor = caffe2::BlobGetMutableTensor(blob, caffe2::DeviceType::CPU);
+      // auto value = TensorCPU({16, 100}, data, NULL);
+      auto value = TensorCPUFromValues<float>({16, 100}, data);
       tensor->ShareData(value);
     }
 
     // >>> workspace.FeedBlob("label", label)
     {
-      auto tensor = workspace.GetBlob("label")->GetMutable<TensorCPU>();
-      auto value = TensorCPU({16}, label, NULL);
+      // auto tensor = workspace.GetBlob("label")->GetMutable<TensorCPU>();
+      auto blob = workspace.GetBlob("label");
+      auto tensor = caffe2::BlobGetMutableTensor(blob, caffe2::DeviceType::CPU);
+      // auto value = TensorCPU({16}, label, NULL);
+      auto value = TensorCPUFromValues<int>({16}, label);
       tensor->ShareData(value);
     }
 

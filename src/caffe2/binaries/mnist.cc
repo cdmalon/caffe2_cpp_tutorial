@@ -3,20 +3,22 @@
 #include "caffe2/util/model.h"
 #include "caffe2/util/net.h"
 
-#include "cvplot/cvplot.h"
+// #include "cvplot/cvplot.h"
 
 #ifdef WITH_CUDA
 #include <caffe2/core/context_gpu.h>
 #endif
 
-CAFFE2_DEFINE_string(train_db, "res/mnist-train-nchw-leveldb",
+C10_DEFINE_string(train_db, "res/mnist-train-nchw-leveldb",
                      "The given path to the training leveldb.");
-CAFFE2_DEFINE_string(test_db, "res/mnist-test-nchw-leveldb",
+C10_DEFINE_string(test_db, "res/mnist-test-nchw-leveldb",
                      "The given path to the testing leveldb.");
-CAFFE2_DEFINE_int(iters, 100, "The of training runs.");
-CAFFE2_DEFINE_int(test_runs, 50, "The of test runs.");
-CAFFE2_DEFINE_bool(force_cpu, false, "Only use CPU, no CUDA.");
-CAFFE2_DEFINE_bool(display, false, "Display graphical training info.");
+C10_DEFINE_string(test2_db, "res/mnist-test2-nchw-leveldb",
+                     "The given path to the testing leveldb.");
+C10_DEFINE_int(iters, 100, "The of training runs.");
+C10_DEFINE_int(test_runs, 50, "The of test runs.");
+C10_DEFINE_bool(force_cpu, false, "Only use CPU, no CUDA.");
+C10_DEFINE_bool(display, false, "Display graphical training info.");
 
 namespace caffe2 {
 
@@ -180,17 +182,17 @@ void run() {
   }
 #endif
 
-  if (FLAGS_display) {
-    cvplot::Window::current("Caffe2 MNIST Tutorial");
-    cvplot::moveWindow("undercertain", 0, 0);
-    cvplot::resizeWindow("undercertain", 300, 300);
-    cvplot::moveWindow("overcertain", 0, 300);
-    cvplot::resizeWindow("overcertain", 300, 300);
-    cvplot::moveWindow("accuracy", 300, 0);
-    cvplot::resizeWindow("accuracy", 300, 300);
-    cvplot::moveWindow("loss", 300, 300);
-    cvplot::resizeWindow("loss", 300, 300);
-  }
+  // if (FLAGS_display) {
+  //   cvplot::Window::current("Caffe2 MNIST Tutorial");
+  //   cvplot::moveWindow("undercertain", 0, 0);
+  //   cvplot::resizeWindow("undercertain", 300, 300);
+  //   cvplot::moveWindow("overcertain", 0, 300);
+  //   cvplot::resizeWindow("overcertain", 300, 300);
+  //   cvplot::moveWindow("accuracy", 300, 0);
+  //   cvplot::resizeWindow("accuracy", 300, 300);
+  //   cvplot::moveWindow("loss", 300, 300);
+  //   cvplot::resizeWindow("loss", 300, 300);
+  // }
 
   // >>> from caffe2.python import core, cnn, net_drawer, workspace, visualize,
   // brew
@@ -223,10 +225,11 @@ void run() {
 
   // >>> data, label = AddInput(test_model, batch_size=100,
   // db=os.path.join(data_folder, 'mnist-test-nchw-leveldb'), db_type='leveldb')
-  AddInput(test, 100, FLAGS_test_db, "leveldb");
+  AddInput(test, 100, FLAGS_test_db, "leveldb"); // let's try moving this
 
   // >>> softmax = AddLeNetModel(test_model, data)
   AddLeNetModel(test, true);
+  // AddInput(test, 100, FLAGS_test_db, "leveldb"); // let's try moving this
 
   // >>> AddAccuracy(test_model, softmax, label)
   AddAccuracy(test);
@@ -235,7 +238,7 @@ void run() {
   // arg_scope=arg_scope, init_params=False)
   NetDef deploy_init_model, deploy_predict_model;
   ModelUtil deploy(deploy_init_model, deploy_predict_model, "mnist_model");
-  deploy.predict.AddInput("data");
+  deploy.predict.AddInput("data");     // the only difference?
   deploy.predict.AddOutput("softmax");
 
   // >>> AddLeNetModel(deploy_model, "data")
@@ -305,12 +308,14 @@ void run() {
     op->set_type("GivenTensorFill");
     auto arg1 = op->add_arg();
     arg1->set_name("shape");
-    for (auto d : tensor.dims()) {
+    for (auto d : tensor.sizes()) {
       arg1->add_ints(d);
+      std::cout << " Tensor dim " << param << " " << d << std::endl;
     }
     auto arg2 = op->add_arg();
     arg2->set_name("values");
     auto data = tensor.data<float>();
+    std::cout << " Tensor size " << param << " " << tensor.size() << std::endl;
     for (auto i = 0; i < tensor.size(); i++) {
       arg2->add_floats(data[i]);
     }
@@ -321,6 +326,97 @@ void run() {
   std::cout << "saving model.. (tmp/mnist_%_net.pb)" << std::endl;
   deploy.predict.WriteText("tmp/mnist_predict_net.pbtxt");
   deploy.Write("tmp/mnist");
+
+  std::cout << "Testing deploy model" << std::endl;
+
+  NetDef data_loader_init_model, data_loader_predict_model;
+  ModelUtil data_loader(data_loader_init_model, data_loader_predict_model, "data_loader_model");
+
+  Workspace workspace2("tmp2");
+  // Don't reload, just add ops
+  AddInput(data_loader, 100, FLAGS_test2_db, "leveldb");
+  deploy.predict.AddInput("label");
+  AddAccuracy(deploy);
+
+  CAFFE_ENFORCE(workspace2.RunNetOnce(data_loader.init.net));
+  CAFFE_ENFORCE(workspace2.RunNetOnce(deploy.init.net));
+  CAFFE_ENFORCE(workspace2.CreateNet(data_loader.predict.net));
+  CAFFE_ENFORCE(workspace2.CreateNet(deploy.predict.net));
+
+  // for (auto i = 1; i <= FLAGS_test_runs; i++) {
+  for (auto i = 1; i <= FLAGS_test_runs; i++) {
+    // >>> workspace2.RunNet(test_model.net.Proto().name)
+    CAFFE_ENFORCE(workspace2.RunNet(data_loader.predict.net.name()));
+    CAFFE_ENFORCE(workspace2.RunNet(deploy.predict.net.name()));
+    // >>> test_accuracy[i] = workspace2.FetchBlob('accuracy')
+    if (i % 10 == 0) {
+      auto accuracy =
+          BlobUtil(*workspace2.GetBlob("accuracy")).Get().data<float>()[0];
+      std::cout << "step: " << i << " accuracy: " << accuracy << std::endl;
+    }
+  }
+
+  std::cout << "Comparing blobs between workspaces" << std::endl;
+  for (auto &param : deploy.predict.net.external_input()) {
+    if(strcmp(param.c_str(), "dbreader")) {
+    if(strcmp(param.c_str(), "iter")) {
+    if(strcmp(param.c_str(), "label")) {
+      std::cout << " Tensor " << param << std::endl << "  ";
+      auto tensor = BlobUtil(*workspace.GetBlob(param)).Get();
+      auto tensor2 = BlobUtil(*workspace2.GetBlob(param)).Get();
+      auto data = tensor.data<float>();
+      auto data2 = tensor2.data<float>();
+      std::cout << " size " << tensor.size();
+      int same = 1;
+      for (auto i = 0; i < tensor.size(); i++) {
+        if(data[i] - data2[i] > .0001 || data2[i] - data[i] > .0001) {
+          same = 0;
+        }
+      }
+      std::cout << (same ? "  same" : "  DIFFERENT") << std::endl;
+    }
+  }
+  }
+  }
+      std::cout << " Tensor " << "conv1" << std::endl << "  ";
+      auto tensor = BlobUtil(*workspace.GetBlob("conv1")).Get();
+      auto tensor2 = BlobUtil(*workspace2.GetBlob("conv1")).Get();
+      auto data = tensor.data<float>();
+      auto data2 = tensor2.data<float>();
+      std::cout << " size " << tensor.size();
+      int same = 1;
+      for (auto i = 0; i < tensor.size(); i++) {
+        if(data[i] - data2[i] > .0001 || data2[i] - data[i] > .0001) {
+          same = 0;
+        }
+      }
+      std::cout << (same ? "  same" : "  DIFFERENT") << std::endl;
+      std::cout << " Tensor " << "softmax" << std::endl << "  ";
+      tensor = BlobUtil(*workspace.GetBlob("softmax")).Get();
+      tensor2 = BlobUtil(*workspace2.GetBlob("softmax")).Get();
+      data = tensor.data<float>();
+      data2 = tensor2.data<float>();
+      std::cout << " size " << tensor.size();
+      same = 1;
+      for (auto i = 0; i < tensor.size(); i++) {
+        if(data[i] - data2[i] > .0001 || data2[i] - data[i] > .0001) {
+          same = 0;
+        }
+      }
+      std::cout << (same ? "  same" : "  DIFFERENT") << std::endl;
+      std::cout << " Tensor " << "data_uint8" << std::endl << "  ";
+      tensor = BlobUtil(*workspace.GetBlob("data_uint8")).Get();
+      tensor2 = BlobUtil(*workspace2.GetBlob("data_uint8")).Get();
+      auto d = tensor.data<unsigned char>();
+      auto d2 = tensor2.data<unsigned char>();
+      std::cout << " size " << tensor.size();
+      same = 1;
+      for (auto i = 0; i < tensor.size(); i++) {
+        if(d[i] - d2[i] > 0 || d2[i] - d[i] > 0) {
+          same = 0;
+        }
+      }
+      std::cout << (same ? "  same" : "  DIFFERENT") << std::endl;
 }
 
 void predict_example() {
@@ -413,11 +509,13 @@ void predict_example() {
 
 // input image data for "2"
 #ifdef WITH_CUDA
-  auto data = workspace.CreateBlob("data")->GetMutable<TensorCUDA>();
+  auto datablob = workspace.CreateBlob("data");
+  auto data = caffe2::BlobGetMutableTensor(datablob, caffe2::DeviceType::CUDA);
 #else
-  auto data = workspace.CreateBlob("data")->GetMutable<TensorCPU>();
+  auto datablob = workspace.CreateBlob("data");
+  auto data = caffe2::BlobGetMutableTensor(datablob, caffe2::DeviceType::CPU);
 #endif
-  TensorCPU input({1, 1, 28, 28}, data_for_2, NULL);
+  auto input = TensorCPUFromValues<float>({1, 1, 28, 28}, data_for_2);
   data->CopyFrom(input);
 
   // run predictor
@@ -425,9 +523,11 @@ void predict_example() {
 
 // read prediction
 #ifdef WITH_CUDA
-  auto softmax = TensorCPU(workspace.GetBlob("softmax")->Get<TensorCUDA>());
+  auto softmax = workspace.GetBlob("softmax")->Get<TensorCUDA>().Clone();
+  // auto softmax = TensorCPU(workspace.GetBlob("softmax")->Get<TensorCUDA>());
 #else
-  auto softmax = workspace.GetBlob("softmax")->Get<TensorCPU>();
+  auto softmax = workspace.GetBlob("softmax")->Get<TensorCPU>().Clone();
+  // auto softmax = workspace.GetBlob("softmax")->Get<TensorCPU>();
 #endif
   std::vector<float> probs(softmax.data<float>(),
                            softmax.data<float>() + softmax.size());

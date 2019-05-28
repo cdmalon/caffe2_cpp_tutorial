@@ -78,7 +78,7 @@ void ModelUtil::AddXentOps(const std::string &output) {
 void ModelUtil::AddIterOps() {
   init.AddConstantFillOp({1}, (int64_t)0, iter_name)
       ->mutable_device_option()
-      ->set_device_type(CPU);
+      ->set_device_type(DeviceTypeProto::PROTO_CPU);
   predict.AddInput(iter_name);
   predict.AddIterOp(iter_name);
 }
@@ -390,7 +390,7 @@ void ModelUtil::CopyDeploy(ModelUtil &deploy, Workspace &workspace) const {
       init_op->set_type("GivenTensorFill");
       auto arg1 = init_op->add_arg();
       arg1->set_name("shape");
-      for (auto dim : tensor.dims()) {
+      for (auto dim : tensor.sizes()) {
         arg1->add_ints(dim);
       }
       auto arg2 = init_op->add_arg();

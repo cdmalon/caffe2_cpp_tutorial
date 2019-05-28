@@ -10,10 +10,10 @@ namespace caffe2 {
 TensorCPU BlobUtil::Get() {
 #ifdef WITH_CUDA
   if (blob_.IsType<TensorCUDA>()) {
-    return TensorCPU(blob_.Get<TensorCUDA>());
+    return TensorCPU(blob_.Get<TensorCUDA>().Clone());
   }
 #endif
-  return blob_.Get<TensorCPU>();
+  return blob_.Get<TensorCPU>().Clone();
 }
 
 void BlobUtil::Set(const TensorCPU &value, bool force_cuda) {
