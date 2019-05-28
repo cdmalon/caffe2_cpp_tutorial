@@ -1,7 +1,7 @@
 # Revised for PyTorch Caffe2: Caffe2 C++ Tutorials and Examples
 
 Caffe2 has changed a lot since these Caffe2 C++ Tutorials and Examples
-from [leonardvandriel/caffe2_cpp_tutorial](leonardvandriel/caffe2_cpp_tutorial)
+from [leonardvandriel/caffe2_cpp_tutorial](https://github.com/leonardvandriel/caffe2_cpp_tutorial)
 were written and PyTorch has taken over the Caffe2 API.
 There are a number of breaking API changes that either prevent old code
 from compiling or cause segfaults if not known about.
