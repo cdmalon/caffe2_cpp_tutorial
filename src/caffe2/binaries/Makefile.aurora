@@ -5,13 +5,19 @@ LIB_DIRS = -L/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/pytorch-ncc2-clang-share
 LD_FLAGS = -Wl,--allow-multiple-definition -Wl,-z,max-page-size=0x200000 -Wl,-rpath=/usr/uhome/aurora/4gi/nlabhpg/.llvm-trunk-ncc2-glibc/lib/clang/9.0.0/lib/linux/ve $(LIB_DIRS)
 FORT = /opt/nec/ve/bin/nfort
 
-all: mnist intro
+all: mnist mnist-load intro
 
 mnist.o: mnist.cc
 	$(CXX) $(CXX_FLAGS) -c mnist.cc
 
 mnist: mnist.o ../util/utillibs.so
 	$(FORT) $(LD_FLAGS) -o mnist mnist.o ../util/utillibs.so -lcaffe2 -lcaffe2_protos -lprotobuf -lcpuinfo -lclog -lc10 -lleveldb -lsnappy -llapack -lcblas -lblas_openmp -lomp -lpthread -lvastfp -lc++ -lc++abi -ldl -lunwind  /opt/nec/ve/nfort/2.1.24/lib/async_io.o /opt/nec/ve/nfort/2.1.24/lib/libnfort.a -lveio
+
+mnist-load.o: mnist-load.cc
+	$(CXX) $(CXX_FLAGS) -c mnist-load.cc
+
+mnist-load: mnist-load.o ../util/utillibs.so
+	$(FORT) $(LD_FLAGS) -o mnist-load mnist-load.o ../util/utillibs.so -lcaffe2 -lcaffe2_protos -lprotobuf -lcpuinfo -lclog -lc10 -lleveldb -lsnappy -llapack -lcblas -lblas_openmp -lomp -lpthread -lvastfp -lc++ -lc++abi -ldl -lunwind  /opt/nec/ve/nfort/2.1.24/lib/async_io.o /opt/nec/ve/nfort/2.1.24/lib/libnfort.a -lveio
 
 intro.o: intro.cc
 	$(CXX) $(CXX_FLAGS) -c intro.cc
@@ -20,4 +26,4 @@ intro: intro.o
 	$(FORT) $(LD_FLAGS) -o intro intro.o -lcaffe2 -lcaffe2_protos -lprotobuf -lcpuinfo -lclog -lc10 -llapack -lcblas -lblas_openmp -lomp -lpthread -lvastfp -lc++ -lc++abi -ldl -lunwind  /opt/nec/ve/nfort/2.1.24/lib/async_io.o /opt/nec/ve/nfort/2.1.24/lib/libnfort.a -lveio
 
 clean:
-	rm -f mnist mnist.o intro intro.o
+	rm -f mnist mnist.o mnist-load mnist-load.o intro intro.o

@@ -4,13 +4,19 @@ CXX_FLAGS = $(CAFFE2_INC) -g -std=c++11
 LIB_DIRS = -L/usr/uhome/aurora/4gi/nlabhpg/malon/x86/pytorch/build_x86/lib -L/usr/uhome/aurora/4gi/nlabhpg/malon/x86/protobuf-clang-install/lib -Wl,-rpath=/usr/uhome/aurora/4gi/nlabhpg/malon/x86/pytorch/build_x86/lib -Wl,-rpath=/usr/uhome/aurora/4gi/nlabhpg/malon/x86/protobuf-clang-install/lib -L/usr/uhome/aurora/4gi/nlabhpg/.llvm-trunk-ncc2-glibc/lib -Wl,-rpath=/usr/uhome/aurora/4gi/nlabhpg/.llvm-trunk-ncc2-glibc/lib
 LD_FLAGS = -Wl,--allow-multiple-definition $(LIB_DIRS)
 
-all: mnist intro
+all: mnist mnist-load intro
 
 mnist.o: mnist.cc
 	$(CXX) $(CXX_FLAGS) -c mnist.cc
 
 mnist: mnist.o ../util/utillibs.so
 	$(CXX) $(LD_FLAGS) -o mnist mnist.o ../util/utillibs.so -lcaffe2 -lcaffe2_protos -lprotobuf -lcpuinfo -lclog -lc10
+
+mnist-load.o: mnist-load.cc
+	$(CXX) $(CXX_FLAGS) -c mnist-load.cc
+
+mnist-load: mnist-load.o ../util/utillibs.so
+	$(CXX) $(LD_FLAGS) -o mnist-load mnist-load.o ../util/utillibs.so -lcaffe2 -lcaffe2_protos -lprotobuf -lcpuinfo -lclog -lc10
 
 intro.o: intro.cc
 	$(CXX) $(CXX_FLAGS) -c intro.cc
@@ -19,4 +25,4 @@ intro: intro.o
 	$(CXX) $(LD_FLAGS) -o intro intro.o -lcaffe2 -lcaffe2_protos -lprotobuf -lcpuinfo -lclog -lc10
 
 clean:
-	rm -f mnist mnist.o intro intro.o
+	rm -f mnist mnist.o mnist-load mnist-load.o intro intro.o
