@@ -27,6 +27,15 @@ in the utils directory, with
 
 Then you can execute the same in the binaries directory.
 
+I also added an mnist-load tutorial, which shows how to use the
+init_net and predict_net from a saved model (in this case,
+saved by the mnist tutorial) to classify new data.
+In general, you may have to do some blob renaming to map your
+data into the blob names the saved model expects or provides,
+as in:
+
+    data_loader.predict.AddCastOp("data", "actual_input_1", TensorProto_DataType_FLOAT);
+
 -- cdmalon
 
 # Original README
