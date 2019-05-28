@@ -223,9 +223,9 @@ void run() {
     // >>> workspace.RunNet(m.name, 10)   # run for 10 times
     for (auto j = 0; j < 10; j++) {
       CAFFE_ENFORCE(workspace.RunNet(predictModel.name()));
-      // std::cout << "step: " << i << " loss: ";
-      // print(*(workspace.GetBlob("loss")));
-      // std::cout << std::endl;
+      std::cout << "step: " << i << " loss: ";
+      print(workspace.GetBlob("loss"), "loss");
+      std::cout << std::endl;
     }
   }
 

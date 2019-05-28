@@ -1,0 +1,33 @@
+CXX = /usr/uhome/aurora/4gi/nlabhpg/.llvm-trunk-ncc2-glibc/bin/clang++
+
+# protoc compiler, from Protocol Buffers build
+PROTOC=/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/protobuf-clang9-shared-install/bin/protoc
+
+# Top directory of Pytorch source tree (.proto files are beneath here)
+CAFFE2_PROTO=/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/pytorch-ncc2-clang-shared
+
+# Some headers from Pytorch source tree, from Protocol Buffers,
+# and from top level of caffe2_cpp_tutorial
+CAFFE2_INC = -I/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/pytorch-ncc2-clang-shared -I/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/pytorch-ncc2-clang-shared/aten/src -I/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/pytorch-ncc2-clang-shared/build_ve -I/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/pytorch-ncc2-clang-shared/build_ve/caffe2/proto -I/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/protobuf-clang9-shared-install/include -I../../../include
+
+CXX_FLAGS = --target=ve-linux -fno-vectorize -fno-slp-vectorize -fno-crash-diagnostics $(CAFFE2_INC) -g -std=c++11 -fPIC -DCAFFE2_API=''
+
+# Libraries from pytorch/caffe2 build, protocol buffers, and clang
+LIB_DIRS = -L/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/pytorch-ncc2-clang-shared/build_ve/lib -L/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/protobuf-clang9-shared-install/lib -Wl,-rpath=/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/pytorch-ncc2-clang-shared/build_ve/lib -Wl,-rpath=/usr/uhome/aurora/4gi/nlabhpg/malon/aurora/protobuf-clang9-shared-install/lib -L/usr/uhome/aurora/4gi/nlabhpg/.llvm-trunk-ncc2-glibc/lib -Wl,-rpath=/usr/uhome/aurora/4gi/nlabhpg/.llvm-trunk-ncc2-glibc/lib
+LD_FLAGS = --target=ve-linux -fno-vectorize -fno-slp-vectorize -fno-crash-diagnostics -Wl,--allow-multiple-definition -Wl,-z,max-page-size=0x200000 -Wl,-rpath=/usr/uhome/aurora/4gi/nlabhpg/.llvm-trunk-ncc2-glibc/lib/clang/9.0.0/lib/linux/ve  $(LIB_DIRS) -fPIC
+
+all: utillibs.so
+
+model.pb.h model.pb.cc: model.proto
+	$(PROTOC) --proto_path=$(CAFFE2_PROTO) --proto_path=. --cpp_out=. model.proto
+
+lib_objects = blob.o tensor.o table.o net.o net_gradient.o net_operator.o net_serial.o progress.o model.pb.o model.o
+
+$(lib_objects): %.o : %.cc
+	$(CXX) $(CXX_FLAGS) -c $<
+
+utillibs.so: $(lib_objects)
+	$(CXX) $(LD_FLAGS) -shared -o utillibs.so $(lib_objects)
+
+clean:
+	rm -f utillibs.so $(lib_objects)

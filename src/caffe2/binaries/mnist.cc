@@ -13,8 +13,6 @@ C10_DEFINE_string(train_db, "res/mnist-train-nchw-leveldb",
                      "The given path to the training leveldb.");
 C10_DEFINE_string(test_db, "res/mnist-test-nchw-leveldb",
                      "The given path to the testing leveldb.");
-C10_DEFINE_string(test2_db, "res/mnist-test2-nchw-leveldb",
-                     "The given path to the testing leveldb.");
 C10_DEFINE_int(iters, 100, "The of training runs.");
 C10_DEFINE_int(test_runs, 50, "The of test runs.");
 C10_DEFINE_bool(force_cpu, false, "Only use CPU, no CUDA.");
@@ -326,97 +324,6 @@ void run() {
   std::cout << "saving model.. (tmp/mnist_%_net.pb)" << std::endl;
   deploy.predict.WriteText("tmp/mnist_predict_net.pbtxt");
   deploy.Write("tmp/mnist");
-
-  std::cout << "Testing deploy model" << std::endl;
-
-  NetDef data_loader_init_model, data_loader_predict_model;
-  ModelUtil data_loader(data_loader_init_model, data_loader_predict_model, "data_loader_model");
-
-  Workspace workspace2("tmp2");
-  // Don't reload, just add ops
-  AddInput(data_loader, 100, FLAGS_test2_db, "leveldb");
-  deploy.predict.AddInput("label");
-  AddAccuracy(deploy);
-
-  CAFFE_ENFORCE(workspace2.RunNetOnce(data_loader.init.net));
-  CAFFE_ENFORCE(workspace2.RunNetOnce(deploy.init.net));
-  CAFFE_ENFORCE(workspace2.CreateNet(data_loader.predict.net));
-  CAFFE_ENFORCE(workspace2.CreateNet(deploy.predict.net));
-
-  // for (auto i = 1; i <= FLAGS_test_runs; i++) {
-  for (auto i = 1; i <= FLAGS_test_runs; i++) {
-    // >>> workspace2.RunNet(test_model.net.Proto().name)
-    CAFFE_ENFORCE(workspace2.RunNet(data_loader.predict.net.name()));
-    CAFFE_ENFORCE(workspace2.RunNet(deploy.predict.net.name()));
-    // >>> test_accuracy[i] = workspace2.FetchBlob('accuracy')
-    if (i % 10 == 0) {
-      auto accuracy =
-          BlobUtil(*workspace2.GetBlob("accuracy")).Get().data<float>()[0];
-      std::cout << "step: " << i << " accuracy: " << accuracy << std::endl;
-    }
-  }
-
-  std::cout << "Comparing blobs between workspaces" << std::endl;
-  for (auto &param : deploy.predict.net.external_input()) {
-    if(strcmp(param.c_str(), "dbreader")) {
-    if(strcmp(param.c_str(), "iter")) {
-    if(strcmp(param.c_str(), "label")) {
-      std::cout << " Tensor " << param << std::endl << "  ";
-      auto tensor = BlobUtil(*workspace.GetBlob(param)).Get();
-      auto tensor2 = BlobUtil(*workspace2.GetBlob(param)).Get();
-      auto data = tensor.data<float>();
-      auto data2 = tensor2.data<float>();
-      std::cout << " size " << tensor.size();
-      int same = 1;
-      for (auto i = 0; i < tensor.size(); i++) {
-        if(data[i] - data2[i] > .0001 || data2[i] - data[i] > .0001) {
-          same = 0;
-        }
-      }
-      std::cout << (same ? "  same" : "  DIFFERENT") << std::endl;
-    }
-  }
-  }
-  }
-      std::cout << " Tensor " << "conv1" << std::endl << "  ";
-      auto tensor = BlobUtil(*workspace.GetBlob("conv1")).Get();
-      auto tensor2 = BlobUtil(*workspace2.GetBlob("conv1")).Get();
-      auto data = tensor.data<float>();
-      auto data2 = tensor2.data<float>();
-      std::cout << " size " << tensor.size();
-      int same = 1;
-      for (auto i = 0; i < tensor.size(); i++) {
-        if(data[i] - data2[i] > .0001 || data2[i] - data[i] > .0001) {
-          same = 0;
-        }
-      }
-      std::cout << (same ? "  same" : "  DIFFERENT") << std::endl;
-      std::cout << " Tensor " << "softmax" << std::endl << "  ";
-      tensor = BlobUtil(*workspace.GetBlob("softmax")).Get();
-      tensor2 = BlobUtil(*workspace2.GetBlob("softmax")).Get();
-      data = tensor.data<float>();
-      data2 = tensor2.data<float>();
-      std::cout << " size " << tensor.size();
-      same = 1;
-      for (auto i = 0; i < tensor.size(); i++) {
-        if(data[i] - data2[i] > .0001 || data2[i] - data[i] > .0001) {
-          same = 0;
-        }
-      }
-      std::cout << (same ? "  same" : "  DIFFERENT") << std::endl;
-      std::cout << " Tensor " << "data_uint8" << std::endl << "  ";
-      tensor = BlobUtil(*workspace.GetBlob("data_uint8")).Get();
-      tensor2 = BlobUtil(*workspace2.GetBlob("data_uint8")).Get();
-      auto d = tensor.data<unsigned char>();
-      auto d2 = tensor2.data<unsigned char>();
-      std::cout << " size " << tensor.size();
-      same = 1;
-      for (auto i = 0; i < tensor.size(); i++) {
-        if(d[i] - d2[i] > 0 || d2[i] - d[i] > 0) {
-          same = 0;
-        }
-      }
-      std::cout << (same ? "  same" : "  DIFFERENT") << std::endl;
 }
 
 void predict_example() {
